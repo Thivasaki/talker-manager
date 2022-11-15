@@ -15,6 +15,40 @@ function genereteToken() {
   return crypto.randomBytes(8).toString('hex');
 }
 
+function validateEmail(req, res, next) {
+  if (req.body.email) {
+    next();
+  }
+  res.status(400).send({ message: 'O campo "email" é obrigatório',
+});
+}
+
+function validateEmailSyntax(req, res, next) {
+  const regex = /\S+@\S+\.\S+/;
+  if (regex.test(req.body.email)) {
+    next();
+  }
+  res.status(400).send({ message: 'O "email" deve ter o formato "email@email.com"' });
+}
+
+function validatePassword(req, res, next) {
+  if (req.body.password) {
+    next();
+  }
+  res.status(400).send({
+    message: 'O campo "password" é obrigatório',
+  });
+}
+
+function validatePasswordLength(req, res, next) {
+  if (req.body.password.length >= 6) {
+    next();
+  }
+  res.status(400).send({
+    message: 'O "password" deve ter pelo menos 6 caracteres',
+  });
+}
+
 async function readData() {
   try {
     const data = await fs.readFile(path.resolve(__dirname, './talker.json'));
@@ -41,12 +75,12 @@ app.get('/talker/:id', async (req, res) => {
   return res.status(NOT_FOUND).json({ message: 'Pessoa palestrante não encontrada' });
 });
 
-app.post('/login', (req, res) => {
+app.post('/login', validateEmail, validateEmailSyntax,
+validatePassword, validatePasswordLength, (req, res) => {
   const token = genereteToken();
   return res.status(200).json({ token });
 });
 
-// não remova esse endpoint, e para o avaliador funcionar
 app.get('/', (_request, response) => {
   response.status(HTTP_OK_STATUS).send();
 });
