@@ -23,12 +23,19 @@ app.get('/talker', async (req, res) => {
   return res.status(HTTP_OK_STATUS).json(talkers);
 });
 
+app.get('/talker/search', validateToken, validateTokenSyntax, async (req, res) => {
+  const { q } = req.query;
+  const talkers = await readData();
+  const talkerByName = talkers.filter((talker) => talker.name.includes(q));
+  res.status(200).send(talkerByName);
+});
+
 app.get('/talker/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (id <= 4) {
     const talkers = await readData();
-    const talkerID = talkers.find((e) => e.id === Number(id));
-    return res.status(HTTP_OK_STATUS).json(talkerID);
+    const talkerByID = talkers.find((e) => e.id === Number(id));
+    return res.status(HTTP_OK_STATUS).json(talkerByID);
   }
   return res.status(NOT_FOUND).json({ message: 'Pessoa palestrante não encontrada' });
 });
