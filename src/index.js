@@ -188,6 +188,17 @@ async function updateData(id, patchedData) {
   }
 }
 
+async function deleteData(id) {
+  const oldData = await readData();
+  const deleteTalker = oldData.filter((talker) => talker.id !== id);
+  const deletedTalkerData = JSON.stringify(deleteTalker);
+  try {
+    await fs.writeFile(path.resolve(__dirname, './talker.json'), deletedTalkerData);
+  } catch (error) {
+    console.error(`Erro na escrita dos dados:${error}`);
+  }
+}
+
 app.get('/talker', async (req, res) => {
   const talkers = await readData();
   return res.status(HTTP_OK_STATUS).json(talkers);
@@ -223,9 +234,14 @@ validateName, validateNameLength, validateAge, validateAgeMajority,
 validateTalk, validateWatchedAt, validateWatchAtSyntax,
 validateRate, validateRateValue, async (req, res) => {
   const id = Number(req.params.id);
-  console.log(req.body);
   const pacthData = await updateData(id, req.body);
   res.status(HTTP_OK_STATUS).json(pacthData);
+});
+
+app.delete('/talker/:id', validateToken, validateTokenSyntax, async (req, res) => {
+  const id = Number(req.params.id);
+  await deleteData(id);
+  res.status(204).send();
 });
 
 app.get('/', (_request, response) => {
