@@ -17,7 +17,7 @@ function genereteToken() {
 
 function validateEmail(req, res, next) {
   if (req.body.email) {
-    next();
+    return next();
   }
   res.status(400).send({ message: 'O campo "email" é obrigatório',
 });
@@ -26,14 +26,14 @@ function validateEmail(req, res, next) {
 function validateEmailSyntax(req, res, next) {
   const regex = /\S+@\S+\.\S+/;
   if (regex.test(req.body.email)) {
-    next();
+    return next();
   }
   res.status(400).send({ message: 'O "email" deve ter o formato "email@email.com"' });
 }
 
 function validatePassword(req, res, next) {
   if (req.body.password) {
-    next();
+    return next();
   }
   res.status(400).send({
     message: 'O campo "password" é obrigatório',
@@ -42,10 +42,111 @@ function validatePassword(req, res, next) {
 
 function validatePasswordLength(req, res, next) {
   if (req.body.password.length >= 6) {
-    next();
+    return next();
   }
   res.status(400).send({
     message: 'O "password" deve ter pelo menos 6 caracteres',
+  });
+}
+
+function validateToken(req, res, next) {
+  if (req.headers.authorization) {
+    return next();
+  }
+  res.status(401).send({
+    message: 'Token não encontrado',
+  });
+}
+
+function validateTokenSyntax(req, res, next) {
+  if (req.headers.authorization.length === 16) {
+    return next();
+  }
+  res.status(401).send({
+    message: 'Token inválido',
+  });
+}
+
+function validateName(req, res, next) {
+  if (req.body.name) {
+    return next();
+  }
+  res.status(400).send({
+    message: 'O campo "name" é obrigatório',
+  });
+}
+
+function validateNameLength(req, res, next) {
+  if (req.body.name.length >= 3) {
+    return next();
+  }
+  res.status(400).send({
+    message: 'O "name" deve ter pelo menos 3 caracteres',
+  });
+}
+
+function validateAge(req, res, next) {
+  if (req.body.age) {
+    return next();
+  }
+  res.status(400).send({
+    message: 'O campo "age" é obrigatório',
+  });
+}
+
+function validateAgeMajority(req, res, next) {
+  if (req.body.age >= 18) {
+    return next();
+  }
+  res.status(400).send({
+    message: 'A pessoa palestrante deve ser maior de idade',
+  });
+}
+
+function validateTalk(req, res, next) {
+  if (req.body.talk) {
+    return next();
+  }
+  res.status(400).send({
+    message: 'O campo "talk" é obrigatório',
+  });
+}
+
+function validateWatchedAt(req, res, next) {
+  if (req.body.talk.watchedAt) {
+    return next();
+  }
+  res.status(400).send({
+    message: 'O campo "watchedAt" é obrigatório',
+  });
+}
+
+function validateWatchAtSyntax(req, res, next) {
+const regex = /^(0?[1-9]|[12][0-9]|3[01])[/-](0?[1-9]|1[012])[/-]\d{4}$/;
+  if (regex.test(req.body.talk.watchedAt)) {
+    return next();
+  }
+  res.status(400).send({
+    message: 'O campo "watchedAt" deve ter o formato "dd/mm/aaaa"',
+  });
+}
+
+function validateRate(req, res, next) {
+  if (req.body.talk.rate) {
+    return next();
+  }
+  res.status(400).send({
+    message: 'O campo "rate" é obrigatório',
+  });
+}
+
+function validateRateValue(req, res, next) {
+  const { rate } = req.body.talk;
+  if (rate <= 5 && rate >= 1 && rate % 1 === 0) {
+    return next();
+  }
+  res.status(400).send({
+    message: 'O campo "rate" deve ser um inteiro de 1 à 5',
   });
 }
 
@@ -57,6 +158,19 @@ async function readData() {
     return talkers;
   } catch (error) {
     console.error(`Erro de leitura:${error}`);
+  }
+}
+
+async function writeData(newData) {
+  try {
+    const oldData = await readData();
+    const id = oldData.length + 1;
+    const newDataWithId = { id, ...newData };
+    const allData = JSON.stringify([...oldData, newDataWithId]);
+    await fs.writeFile(path.resolve(__dirname, './talker.json'), allData);
+    return newDataWithId;
+  } catch (error) {
+    console.error(`Erro na escrita dos dados:${error}`);
   }
 }
 
@@ -79,6 +193,15 @@ app.post('/login', validateEmail, validateEmailSyntax,
 validatePassword, validatePasswordLength, (req, res) => {
   const token = genereteToken();
   return res.status(200).json({ token });
+});
+
+app.post('/talker', validateToken, validateTokenSyntax,
+validateName, validateNameLength, validateAge, validateAgeMajority,
+validateTalk, validateWatchedAt, validateWatchAtSyntax,
+validateRate, validateRateValue, async (req, res) => {
+  const newTalker = req.body;
+  const newListTalker = await writeData(newTalker);
+  res.status(201).json(newListTalker);
 });
 
 app.get('/', (_request, response) => {
