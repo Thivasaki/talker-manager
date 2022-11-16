@@ -132,7 +132,7 @@ const regex = /^(0?[1-9]|[12][0-9]|3[01])[/-](0?[1-9]|1[012])[/-]\d{4}$/;
 }
 
 function validateRate(req, res, next) {
-  if (req.body.talk.rate) {
+  if (req.body.talk.rate !== undefined) {
     return next();
   }
   res.status(400).send({
@@ -174,6 +174,20 @@ async function writeData(newData) {
   }
 }
 
+async function updateData(id, patchedData) {
+  const oldData = await readData();
+  const pacthData = { id, ...patchedData };
+  const updateTalker = oldData.map((data) => (data.id === id 
+  ? pacthData : data));
+  const updateTalkerData = JSON.stringify(updateTalker);
+  try {
+    await fs.writeFile(path.resolve(__dirname, './talker.json'), updateTalkerData);
+    return pacthData;
+  } catch (error) {
+    console.error(`Erro na escrita dos dados:${error}`);
+  }
+}
+
 app.get('/talker', async (req, res) => {
   const talkers = await readData();
   return res.status(HTTP_OK_STATUS).json(talkers);
@@ -202,6 +216,16 @@ validateRate, validateRateValue, async (req, res) => {
   const newTalker = req.body;
   const newListTalker = await writeData(newTalker);
   res.status(201).json(newListTalker);
+});
+
+app.put('/talker/:id', validateToken, validateTokenSyntax,
+validateName, validateNameLength, validateAge, validateAgeMajority,
+validateTalk, validateWatchedAt, validateWatchAtSyntax,
+validateRate, validateRateValue, async (req, res) => {
+  const id = Number(req.params.id);
+  console.log(req.body);
+  const pacthData = await updateData(id, req.body);
+  res.status(HTTP_OK_STATUS).json(pacthData);
 });
 
 app.get('/', (_request, response) => {
